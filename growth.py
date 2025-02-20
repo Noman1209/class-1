@@ -3,113 +3,92 @@ import pandas as pd
 import os
 from io import BytesIO
 
-# Page config(page_title, "Data Sweeper", layout='wide')
+st.set_page_config(page_title="Data Sweeper", layout='wide' )
 
-# Custom CSS
+#custom css
 st.markdown(
     """
     <style>
-    .app {
+    .stApp{
         background-color: black;
-        color: white;    
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
+        color: white;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
 )
 
-# Title and description
-st.title("Datasweeper Sterling Integrator by Muhammad Noman")
-st.write("Transform your files between CSV and Excel formats with built-in data cleaning tools.")
+#title and description
+st.title("Datasweeper")
+st.write("Transform your files between CSV and Excel formats with built-in data cleaning and visualization Creating the project for quarter 3!")
 
-# File uploader
-uploaded_files = st.file_uploader(
-    label="Upload your CSV or Excel files", 
-    type=['csv', 'xlsx'], 
-    accept_multiple_files=True
-)
+#file uploader
+uploaded_files = st.file_uploader("Upload your files (accepts CSV or Excel):", type=["csv","xlsx"], accept_multiple_files=(True))
 
 if uploaded_files:
-    for uploaded_file in uploaded_files:
-        file_ext = os.path.splitext(uploaded_file.name)[1].lower()
-        
+    for file in uploaded_files:
+        file_ext = os.path.splitext(file.name)[-1].lower()
+
         if file_ext == ".csv":
-            df = pd.read_csv(uploaded_file)
-        elif file_ext == ".xlsx":
-            df = pd.read_excel(uploaded_file)
+            df = pd.read_csv(file)
+        elif file_ext == "xlsx":
+            df = pd.read_excel(file)
         else:
-            st.write(f"Unsupported file type: {file_ext}")
+            st.error(f"unsupported file type: {file_ext}")
             continue
 
-        # File details and preview
-        st.write(f"### Preview of {uploaded_file.name}")
+        #file details
+        st.write("🔍 Preview the head of the Dataframe")
         st.dataframe(df.head())
 
-        # Data cleaning options
-        st.subheader(f"Clean Data for {uploaded_file.name}")
-        if st.checkbox(f"Enable data cleaning for {uploaded_file.name}"):
+        #data cleaning options
+        st.subheader("🛠️ Data Cleaning Options")
+        if st.checkbox(f"Clean data for {file.name}"):
             col1, col2 = st.columns(2)
-            
+
             with col1:
-                if st.button(f"Remove duplicates from {uploaded_file.name}"):
+                if st.button(f"Remove duplicates from the file : {file.name}"):
                     df.drop_duplicates(inplace=True)
                     st.write("Duplicates removed!")
             
             with col2:
-                if st.button(f"Fill missing values in {uploaded_file.name}"):
-                    numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
+                if st.button(f"Fill missing values for {file.name}"):
+                    numeric_cols = df.select_dtypes(include=['number']).columns
                     df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-                    st.write("Missing values filled!")
+                    st.write(" Missing values have been filled!")
+        
+        st.subheader("🎯 Select Columns to Keep")
+        columns = st.multiselect(f"Choose columns for {file.name}", df.columns, default=df.columns)
+        df = df[columns]
 
-        # Select columns to keep
-        st.subheader("Select Columns to Keep")
-        columns = st.multiselect(
-            f"Choose columns for {uploaded_file.name}", 
-            df.columns, 
-            default=list(df.columns)
-        )
-        if columns:
-            df = df[columns]
 
-        # Data visualization
-        st.subheader("Data Visualization")
-        if st.checkbox(f"Show visualization for {uploaded_file.name}"):
-            numeric_cols = df.select_dtypes(include='number').columns
-            if len(numeric_cols) >= 2:
-                fig = px.bar(
-                    df, 
-                    x=numeric_cols[0], 
-                    y=numeric_cols[1], 
-                    title=f"Bar Chart for {uploaded_file.name}",
-                    labels={numeric_cols[0]: "X-Axis", numeric_cols[1]: "Y-Axis"},
-                    template="plotly_dark"
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.write("Not enough numeric columns for visualization!")
+        #data visualization
+        st.subheader("📊 Data Visualization")
+        if st.checkbox(f"Show visualization for {file.name}"):
+            st.bar_chart(df.select_dtypes(include='number').iloc[:, :2])
 
-        # Conversion options
-        st.subheader("Conversion Options")
-        convert_type = st.radio(
-            f"Convert {uploaded_file.name} to", 
-            ["csv", "xlsx"]
-        )
-        if st.button(f"Convert {uploaded_file.name}"):
+        #Conversion Options
+
+        st.subheader("🔄 Conversion Options")
+        conversion_type = st.radio(f"Convert {file.name} to:", ["CSV" , "Excel"], key=file.name)
+        if st.button(f"Convert{file.name}"):
             buffer = BytesIO()
-            if convert_type == "csv":
+            if conversion_type == "CSV":
                 df.to_csv(buffer, index=False)
-                file_name = uploaded_file.name.replace(".xlsx", ".csv")
+                file_name = file.name.replace(file_ext, ".csv")
                 mime_type = "text/csv"
-            elif convert_type == "xlsx":
-                df.to_excel(buffer, index=False)
-                file_name = uploaded_file.name.replace(".csv", ".xlsx")
-                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             
+            elif conversion_type == "Excel":
+                df.to_excel(buffer, index=False)
+                file_name = file.name.replace(file_ext, ".xlsx")
+                mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             buffer.seek(0)
+
             st.download_button(
-                label=f"Download {uploaded_file.name} as {convert_type.upper()}",
+                label=f"Download {file.name} as {conversion_type}",
                 data=buffer,
                 file_name=file_name,
                 mime=mime_type
             )
-    st.success("All files processed successfully!")
+
+st.success("All files processed successfully!"
